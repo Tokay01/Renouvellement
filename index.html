@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rapport de renouvellement</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f766e">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rapport">
+<style>
+  :root {
+    --ink: #0b2027;
+    --ink-soft: #3b4a4f;
+    --muted: #6b7a7d;
+    --line: #d7ded9;
+    --paper: #f3f6f4;
+    --card: #ffffff;
+    --teal: #0f7a72;
+    --teal-deep: #0a5b54;
+    --amber: #c9770f;
+    --amber-tint: #fbeee0;
+    --emerald: #1a8f66;
+    --emerald-tint: #e4f5ee;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Roboto Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(rgba(11,32,39,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11,32,39,0.035) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  .wrap { max-width: 480px; margin: 0 auto; padding: 24px 16px 190px; }
+
+  .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+  .brand-mark-bg { fill: var(--teal); }
+  .brand-mark-fg { fill: #fff; }
+  .app-header-text { min-width: 0; }
+  .eyebrow { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); color: var(--teal-deep); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.01em; color: var(--ink); line-height: 1.25; }
+
+  .section-eyebrow { display: flex; align-items: baseline; gap: 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 14px; }
+  .section-eyebrow .num { font-family: var(--font-mono); color: var(--teal); font-weight: 600; letter-spacing: 0; }
+
+  .fields { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .field input, .field textarea {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+    padding: 10px 14px; font-size: 16px; color: var(--ink); font-family: inherit;
+  }
+  .field textarea { resize: none; }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15,122,114,0.15); }
+  .fixed-recipient {
+    width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #eef1ef;
+    padding: 10px 14px; font-size: 14px; color: var(--ink-soft); font-family: var(--font-mono);
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .fixed-recipient svg { flex-shrink: 0; color: var(--muted); }
+
+  .photos-section { margin-bottom: 32px; }
+  #rows-container { display: flex; flex-direction: column; gap: 12px; }
+  .row-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(11,32,39,0.05); }
+  .row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .label-input { flex: 1; border: none; background: transparent; font-size: 14px; font-weight: 600; padding: 4px 0; font-family: inherit; min-width: 0; color: var(--ink); }
+  .label-input:focus { outline: none; }
+  .icon-btn { background: none; border: none; color: var(--muted); padding: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; }
+  .icon-btn:active { color: #b3261e; }
+
+  .photo-pair { display: flex; gap: 8px; }
+  .photo-slot { flex: 1; height: 132px; border-radius: 8px; position: relative; overflow: hidden; }
+  .photo-slot.empty {
+    border: 1px solid var(--line);
+    background-color: #fff;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor),
+      linear-gradient(currentColor, currentColor);
+    background-size: 16px 2px, 2px 16px, 16px 2px, 2px 16px, 16px 2px, 2px 16px, 16px 2px, 2px 16px;
+    background-position: top left, top left, top right, top right, bottom left, bottom left, bottom right, bottom right;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    cursor: pointer;
+  }
+  .photo-slot.tone-before { color: var(--amber); }
+  .photo-slot.tone-after { color: var(--emerald); }
+  .photo-slot input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+  .photo-icon { display: flex; }
+  .photo-label-text { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+  .photo-slot.has-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-chip {
+    position: absolute; top: 6px; left: 6px;
+    font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #fff; padding: 3px 7px; border-radius: 5px;
+  }
+  .photo-chip.tone-before { background: rgba(201,119,15,0.88); }
+  .photo-chip.tone-after { background: rgba(26,143,102,0.88); }
+  .remove-photo {
+    position: absolute; top: 6px; right: 6px;
+    background: rgba(11,32,39,0.72); color: #fff; border: none; border-radius: 999px;
+    width: 22px; height: 22px; padding: 0; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+
+  .add-row-btn {
+    width: 100%; margin-top: 12px; padding: 10px; border: 1px dashed var(--line); border-radius: 10px;
+    background: none; color: var(--muted); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .add-row-btn:active { border-color: var(--teal); color: var(--teal); }
+
+  .hint { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--muted); margin: 10px 0 0; line-height: 1.5; }
+  .hint svg { flex-shrink: 0; margin-top: 2px; }
+  .hint.center { justify-content: center; text-align: center; }
+
+  #msg-area { margin-top: 4px; margin-bottom: 8px; }
+  .msg { display: flex; align-items: flex-start; gap: 8px; border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.45; }
+  .msg svg { flex-shrink: 0; margin-top: 1px; }
+  .msg-error { background: var(--amber-tint); border: 1px solid rgba(201,119,15,0.35); color: #7a4a0a; }
+  .msg-success { background: var(--emerald-tint); border: 1px solid rgba(26,143,102,0.35); color: #0f5c40; }
+
+  .action-bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgba(243,246,244,0.92);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 16px rgba(11,32,39,0.06);
+    z-index: 20;
+  }
+  .action-bar-inner { max-width: 480px; margin: 0 auto; }
+  .primary-btn {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 14px; border-radius: 12px; border: none; background: var(--teal); color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 1px 2px rgba(11,32,39,0.15);
+  }
+  .primary-btn:active { background: var(--teal-deep); transform: translateY(1px); box-shadow: none; }
+  .primary-btn:disabled { opacity: 0.65; }
+  .spinner {
+    width: 15px; height: 15px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.35); border-top-color: #fff;
+    display: inline-block; animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .link-btn { width: 100%; margin-top: 6px; background: none; border: none; color: var(--muted); font-size: 14px; padding: 8px; cursor: pointer; text-decoration: underline; font-family: inherit; }
+
+  .history-section { margin-top: 8px; }
+  .history-toggle {
+    width: 100%; display: flex; justify-content: space-between; align-items: center; background: none; border: none;
+    padding: 8px 0; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+    cursor: pointer; font-family: inherit;
+  }
+  .history-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .history-list li {
+    background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px;
+    display: flex; justify-content: space-between; font-size: 14px;
+  }
+  .hist-sub { color: #9ca3af; }
+  .hist-date { font-family: var(--font-mono); color: var(--muted); font-size: 12px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner { animation-duration: 0.001ms; animation-iteration-count: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app-header">
+    <svg viewBox="0 0 100 100" width="40" height="40" aria-hidden="true">
+      <rect class="brand-mark-bg" width="100" height="100" rx="22"/>
+      <polygon class="brand-mark-fg" points="50,28 35,59 65,59"/>
+      <circle class="brand-mark-fg" cx="50" cy="59" r="15"/>
+    </svg>
+    <div class="app-header-text">
+      <div class="eyebrow"><span class="status-dot"></span>Fiche d'intervention</div>
+      <h1>Renouvellement d'équipement</h1>
+    </div>
+  </header>
+
+  <section class="fields">
+    <div class="section-eyebrow"><span class="num">01</span>Identification</div>
+    <div class="field">
+      <label for="f-commune">Commune</label>
+      <input id="f-commune" type="text" placeholder="Ex. Corcelles-en-Beaujolais">
+    </div>
+    <div class="field">
+      <label for="f-site">Site</label>
+      <input id="f-site" type="text" placeholder="Ex. Station de pompage">
+    </div>
+    <div class="field">
+      <label for="f-agent">Nom de l'agent</label>
+      <input id="f-agent" type="text" placeholder="Nom Prénom" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="f-date">Date</label>
+      <input id="f-date" type="date">
+    </div>
+    <div class="field">
+      <label for="f-nature">Nature des travaux</label>
+      <textarea id="f-nature" rows="3" placeholder="Décris l'intervention…"></textarea>
+    </div>
+  </section>
+
+  <section class="photos-section">
+    <div class="section-eyebrow"><span class="num">02</span>Photos avant / après</div>
+    <div id="rows-container"></div>
+    <button id="add-row-btn" class="add-row-btn" type="button">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Ajouter un équipement
+    </button>
+    <p class="hint">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.6" r="0.75" fill="currentColor" stroke="none"/></svg>
+      <span>Les équipements sans aucune photo ne seront pas inclus dans le rapport.</span>
+    </p>
+  </section>
+
+  <section class="fields">
+    <div class="section-eyebrow"><span class="num">03</span>Envoi</div>
+    <div class="field">
+      <label>Destinataire</label>
+      <div class="fixed-recipient">
+        <span>sebastien.millet@suez.com</span>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      </div>
+    </div>
+    <p class="hint center">Le document se télécharge automatiquement, puis ta messagerie s'ouvre avec le destinataire et l'objet déjà remplis — il ne reste qu'à joindre le fichier et envoyer.</p>
+  </section>
+
+  <div id="msg-area"></div>
+
+  <section id="history-section" class="history-section" style="display:none;">
+    <button id="history-toggle" class="history-toggle" type="button">
+      <span>Derniers rapports</span><span id="history-chevron"></span>
+    </button>
+    <ul id="history-list" class="history-list" style="display:none;"></ul>
+  </section>
+</div>
+
+<div class="action-bar">
+  <div class="action-bar-inner">
+    <button id="validate-btn" class="primary-btn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5 11 13"/><path d="M21.5 2.5 15 21.5 11 13 2.5 9 Z"/></svg><span>Valider et envoyer</span></button>
+    <button id="download-only-btn" class="link-btn" type="button">Télécharger sans envoyer</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  let rowIdCounter = 1;
+  function makeRow() { return { id: rowIdCounter++, label: '', before: null, after: null }; }
+
+  const state = {
+    commune: '', site: '', agent: '', date: todayISO(), nature: '',
+    rows: [makeRow()]
+  };
+  let history = [];
+
+  // ---------- helpers ----------
+  function todayISO() {
+    const d = new Date();
+    const offsetMs = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - offsetMs).toISOString().slice(0, 10);
+  }
+  function slugify(s) {
+    s = s || '';
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'rapport';
+  }
+  function formatDateFr(iso) {
+    if (!iso) return '';
+    const p = iso.split('-');
+    return `${p[2]}/${p[1]}/${p[0]}`;
+  }
+  function escapeHtml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function escapeAttr(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  function compressImage(file, maxWidth, quality) {
+    maxWidth = maxWidth || 1100;
+    quality = quality || 0.72;
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width, height = img.height;
+          if (width > maxWidth) { height = Math.round(height * maxWidth / width); width = maxWidth; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve({ dataUrl: canvas.toDataURL('image/jpeg', quality), width, height });
+        };
+        img.onerror = () => reject(new Error('image_load_failed'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('file_read_failed'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- persistence (localStorage: fine here, this is a real standalone page) ----------
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem('rapport_settings_v1');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.agent) state.agent = parsed.agent;
+      }
+    } catch (e) { /* pas de réglages enregistrés */ }
+  }
+  function saveSettings() {
+    try { localStorage.setItem('rapport_settings_v1', JSON.stringify({ agent: state.agent })); }
+    catch (e) { /* stockage indisponible */ }
+  }
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem('rapport_history_v1');
+      history = raw ? JSON.parse(raw) : [];
+    } catch (e) { history = []; }
+  }
+  function saveHistoryEntry() {
+    history.unshift({
+      commune: state.commune, site: state.site, date: state.date,
+      nature: (state.nature || '').slice(0, 80), at: new Date().toISOString()
+    });
+    history = history.slice(0, 30);
+    try { localStorage.setItem('rapport_history_v1', JSON.stringify(history)); } catch (e) {}
+    renderHistory();
+  }
+
+  // ---------- DOM refs ----------
+  const el = {};
+  function cacheEls() {
+    ['f-commune','f-site','f-agent','f-date','f-nature','rows-container','add-row-btn',
+     'msg-area','validate-btn','download-only-btn','history-section','history-toggle',
+     'history-chevron','history-list'].forEach((id) => { el[id] = document.getElementById(id); });
+  }
+
+  // ---------- icons (inline SVG, no external dependency) ----------
+  const ICONS = {
+    before: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 21.5 20 H2.5 Z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="16.8" r="0.75" fill="currentColor" stroke="none"/></svg>',
+    after: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.3 10.5 14.8 16 9.3"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9.5 7V4.5a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1V7"/><path d="M6.5 7l1 12.5a1 1 0 0 0 1 .9h7a1 1 0 0 0 1-.9L17.5 7"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>',
+    send: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5 11 13"/><path d="M21.5 2.5 15 21.5 11 13 2.5 9 Z"/></svg>',
+    close: '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>',
+    chevronDown: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>',
+    chevronUp: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"/></svg>'
+  };
+
+  // ---------- rendering ----------
+  function photoSlotHtml(row, side) {
+    const isBefore = side === 'before';
+    const photo = row[side];
+    const tone = isBefore ? 'tone-before' : 'tone-after';
+    const labelTxt = isBefore ? 'Avant' : 'Après';
+    if (photo) {
+      return `<div class="photo-slot has-photo">
+        <img src="${photo.dataUrl}" alt="${labelTxt}">
+        <span class="photo-chip ${tone}">${labelTxt}</span>
+        <button class="remove-photo" data-row-id="${row.id}" data-side="${side}" data-action="remove-photo" aria-label="Supprimer la photo">${ICONS.close}</button>
+      </div>`;
+    }
+    return `<label class="photo-slot empty ${tone}">
+      <input type="file" accept="image/*" data-row-id="${row.id}" data-side="${side}" data-action="capture">
+      <span class="photo-icon">${isBefore ? ICONS.before : ICONS.after}</span>
+      <span class="photo-label-text">${labelTxt}</span>
+    </label>`;
+  }
+
+  function rowCardHtml(row, idx) {
+    const canRemove = state.rows.length > 1;
+    return `<div class="row-card" data-row-id="${row.id}">
+      <div class="row-head">
+        <input class="label-input" data-row-id="${row.id}" data-action="label" placeholder="Équipement ${idx + 1} (optionnel)" value="${escapeAttr(row.label)}">
+        ${canRemove ? `<button class="icon-btn" data-row-id="${row.id}" data-action="remove-row" aria-label="Supprimer cette ligne">${ICONS.trash}</button>` : ''}
+      </div>
+      <div class="photo-pair">${photoSlotHtml(row, 'before')}${photoSlotHtml(row, 'after')}</div>
+    </div>`;
+  }
+
+  function renderRows() {
+    el['rows-container'].innerHTML = state.rows.map(rowCardHtml).join('');
+  }
+
+  function renderHistory() {
+    if (!history.length) { el['history-section'].style.display = 'none'; return; }
+    el['history-section'].style.display = '';
+    el['history-list'].innerHTML = history.slice(0, 8).map((h) => `
+      <li>
+        <span class="hist-main">${escapeHtml(h.site)} <span class="hist-sub">— ${escapeHtml(h.commune)}</span></span>
+        <span class="hist-date">${formatDateFr(h.date)}</span>
+      </li>`).join('');
+  }
+
+  function showMessage(type, text) {
+    const cls = type === 'error' ? 'msg msg-error' : 'msg msg-success';
+    const icon = type === 'error' ? ICONS.before : ICONS.after;
+    el['msg-area'].innerHTML = `<div class="${cls}">${icon}<span>${escapeHtml(text)}</span></div>`;
+  }
+  function clearMessage() { el['msg-area'].innerHTML = ''; }
+
+  // ---------- minimal ZIP writer (stored/no compression) ----------
+  function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1));
+      }
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+  function u16(n) { return new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF]); }
+  function u32(n) { return new Uint8Array([n & 0xFF, (n >>> 8) & 0xFF, (n >>> 16) & 0xFF, (n >>> 24) & 0xFF]); }
+  function concatU8(arrays) {
+    let total = 0;
+    arrays.forEach((a) => { total += a.length; });
+    const out = new Uint8Array(total);
+    let off = 0;
+    arrays.forEach((a) => { out.set(a, off); off += a.length; });
+    return out;
+  }
+  function strToU8(s) { return new TextEncoder().encode(s); }
+  function dataUrlToU8(dataUrl) {
+    const base64 = dataUrl.split(',')[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+  function makeZip(files, mimeType) {
+    const nameU8 = files.map((f) => strToU8(f.name));
+    const metas = [];
+    const localChunks = [];
+    let offset = 0;
+
+    files.forEach((f, i) => {
+      const crc = crc32(f.data);
+      const size = f.data.length;
+      const header = concatU8([
+        u32(0x04034b50), u16(20), u16(0), u16(0), u16(0), u16(0),
+        u32(crc), u32(size), u32(size),
+        u16(nameU8[i].length), u16(0), nameU8[i]
+      ]);
+      metas.push({ crc, size, offset, nameU8: nameU8[i] });
+      localChunks.push(header, f.data);
+      offset += header.length + f.data.length;
+    });
+
+    const centralStart = offset;
+    const centralChunks = [];
+    metas.forEach((m) => {
+      const header = concatU8([
+        u32(0x02014b50), u16(20), u16(20), u16(0), u16(0), u16(0), u16(0),
+        u32(m.crc), u32(m.size), u32(m.size),
+        u16(m.nameU8.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(m.offset),
+        m.nameU8
+      ]);
+      centralChunks.push(header);
+      offset += header.length;
+    });
+    const centralSize = offset - centralStart;
+
+    const eocd = concatU8([
+      u32(0x06054b50), u16(0), u16(0),
+      u16(files.length), u16(files.length),
+      u32(centralSize), u32(centralStart), u16(0)
+    ]);
+
+    return new Blob([...localChunks, ...centralChunks, eocd], { type: mimeType });
+  }
+
+  // ---------- docx XML generation ----------
+  const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const FIXED_RECIPIENT = 'sebastien.millet@suez.com';
+  const CONTENT_TYPES_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="jpeg" ContentType="image/jpeg"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+  const ROOT_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  function escapeXml(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
+  function textRunsWithBreaks(text) {
+    const lines = String(text || '').split('\n');
+    return lines.map((l) => `<w:t xml:space="preserve">${escapeXml(l)}</w:t>`).join('<w:br/>');
+  }
+  const TARGET_WIDTH_EMU = 2160000; // ~6 cm wide in the document
+  function imageDrawingXml(relId, width, height) {
+    const ratio = height / Math.max(width, 1);
+    const cx = TARGET_WIDTH_EMU;
+    const cy = Math.max(1, Math.round(TARGET_WIDTH_EMU * ratio));
+    return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing>` +
+      `<wp:inline distT="0" distB="0" distL="0" distR="0">` +
+      `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/>` +
+      `<wp:docPr id="${relId}" name="Picture ${relId}"/>` +
+      `<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+      `<pic:pic><pic:nvPicPr><pic:cNvPr id="${relId}" name="Picture ${relId}"/><pic:cNvPicPr/></pic:nvPicPr>` +
+      `<pic:blipFill><a:blip r:embed="rId${relId}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+      `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm>` +
+      `<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic>` +
+      `</a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+  }
+  function emptyCellXml() {
+    return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:t>—</w:t></w:r></w:p>`;
+  }
+
+  function buildDocxBlob() {
+    let relCounter = 1;
+    const mediaFiles = [];
+    function addImage(photo) {
+      const relId = relCounter++;
+      mediaFiles.push({ relId, dataUrl: photo.dataUrl });
+      return imageDrawingXml(relId, photo.width, photo.height);
+    }
+
+    const body = [];
+    body.push(`<w:p><w:pPr><w:spacing w:after="160"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>Rapport de renouvellement d'équipement</w:t></w:r></w:p>`);
+
+    function metaLine(label, value) {
+      return `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${escapeXml(label)} : </w:t></w:r><w:r><w:t xml:space="preserve">${escapeXml(value)}</w:t></w:r></w:p>`;
+    }
+    body.push(metaLine('Commune', state.commune));
+    body.push(metaLine('Site', state.site));
+    body.push(metaLine('Agent', state.agent));
+    body.push(metaLine('Date', formatDateFr(state.date)));
+    body.push(`<w:p><w:pPr><w:spacing w:after="200"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Nature des travaux : </w:t></w:r><w:r>${textRunsWithBreaks(state.nature)}</w:r></w:p>`);
+
+    const rowsWithPhotos = state.rows.filter((r) => r.before || r.after);
+    let tableRows = `<w:tr>
+      <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Avant</w:t></w:r></w:p></w:tc>
+      <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Après</w:t></w:r></w:p></w:tc>
+    </w:tr>`;
+
+    rowsWithPhotos.forEach((r) => {
+      if (r.label) {
+        tableRows += `<w:tr><w:tc><w:tcPr><w:tcW w:w="9000" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(r.label)}</w:t></w:r></w:p></w:tc></w:tr>`;
+      }
+      const beforeCell = r.before ? addImage(r.before) : emptyCellXml();
+      const afterCell = r.after ? addImage(r.after) : emptyCellXml();
+      tableRows += `<w:tr>
+        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${beforeCell}</w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${afterCell}</w:tc>
+      </w:tr>`;
+    });
+
+    body.push(`<w:tbl>
+      <w:tblPr>
+        <w:tblW w:w="0" w:type="auto"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+          <w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+          <w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+          <w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+          <w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid><w:gridCol w:w="4500"/><w:gridCol w:w="4500"/></w:tblGrid>
+      ${tableRows}
+    </w:tbl>`);
+    body.push(`<w:p/>`);
+    body.push(`<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`);
+
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+  <w:body>${body.join('')}</w:body>
+</w:document>`;
+
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${mediaFiles.map((m) => `<Relationship Id="rId${m.relId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image${m.relId}.jpeg"/>`).join('')}</Relationships>`;
+
+    const files = [
+      { name: '[Content_Types].xml', data: strToU8(CONTENT_TYPES_XML) },
+      { name: '_rels/.rels', data: strToU8(ROOT_RELS_XML) },
+      { name: 'word/document.xml', data: strToU8(documentXml) },
+      { name: 'word/_rels/document.xml.rels', data: strToU8(relsXml) }
+    ];
+    mediaFiles.forEach((m) => {
+      files.push({ name: `word/media/image${m.relId}.jpeg`, data: dataUrlToU8(m.dataUrl) });
+    });
+
+    return makeZip(files, DOCX_MIME);
+  }
+
+  function canGenerate() {
+    return !!(state.commune.trim() && state.site.trim() && state.agent.trim() && state.nature.trim() &&
+      state.rows.some((r) => r.before || r.after));
+  }
+
+  function buildBlobAndMeta() {
+    const blob = buildDocxBlob();
+    const filename = `Rapport_${slugify(state.commune)}_${slugify(state.site)}_${state.date}.docx`;
+    const subject = `Rapport renouvellement - ${state.commune} - ${state.site} - ${formatDateFr(state.date)}`;
+    const body = `Bonjour,
+
+Ci-joint le rapport de renouvellement d'équipement pour ${state.site} (${state.commune}) du ${formatDateFr(state.date)}.
+
+Agent : ${state.agent}
+Nature des travaux : ${state.nature}
+
+Cordialement.`;
+    return { blob, filename, subject, body };
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  // ---------- actions ----------
+  function addRow() { state.rows.push(makeRow()); renderRows(); }
+  function removeRow(id) {
+    if (state.rows.length <= 1) return;
+    state.rows = state.rows.filter((r) => r.id !== id);
+    renderRows();
+  }
+  function removePhoto(id, side) {
+    const row = state.rows.find((r) => r.id === id);
+    if (row) { row[side] = null; renderRows(); }
+  }
+  function handlePhotoFile(id, side, file) {
+    compressImage(file).then((photo) => {
+      const row = state.rows.find((r) => r.id === id);
+      if (row) { row[side] = photo; renderRows(); }
+    }).catch(() => showMessage('error', 'Photo illisible, réessaie.'));
+  }
+
+  const SEND_BTN_HTML = `${ICONS.send}<span>Valider et envoyer</span>`;
+  const LOADING_BTN_HTML = `<span class="spinner"></span><span>Génération…</span>`;
+  const MISSING_FIELDS_MSG = 'Renseigne commune, site, agent, nature des travaux et au moins une photo.';
+
+  async function handleValidate() {
+    clearMessage();
+    if (!canGenerate()) {
+      showMessage('error', MISSING_FIELDS_MSG);
+      return;
+    }
+    el['validate-btn'].disabled = true;
+    el['validate-btn'].innerHTML = LOADING_BTN_HTML;
+
+    const meta = buildBlobAndMeta();
+    downloadBlob(meta.blob, meta.filename);
+
+    setTimeout(() => {
+      const mailto = `mailto:${encodeURIComponent(FIXED_RECIPIENT)}?subject=${encodeURIComponent(meta.subject)}&body=${encodeURIComponent(meta.body + "\n\n(Le fichier vient d'être téléchargé — pense à le joindre.)")}`;
+      window.location.href = mailto;
+    }, 600);
+
+    if (state.agent) saveSettings();
+    saveHistoryEntry();
+    showMessage('success', "Rapport téléchargé. Ta messagerie s'ouvre avec le destinataire prérempli — pense à joindre le fichier.");
+    el['validate-btn'].disabled = false;
+    el['validate-btn'].innerHTML = SEND_BTN_HTML;
+  }
+
+  function handleDownloadOnly() {
+    clearMessage();
+    if (!canGenerate()) {
+      showMessage('error', MISSING_FIELDS_MSG);
+      return;
+    }
+    const meta = buildBlobAndMeta();
+    downloadBlob(meta.blob, meta.filename);
+    saveHistoryEntry();
+  }
+
+  // ---------- wiring ----------
+  function init() {
+    cacheEls();
+    loadSettings();
+    loadHistory();
+
+    el['f-commune'].addEventListener('input', (e) => { state.commune = e.target.value; });
+    el['f-site'].addEventListener('input', (e) => { state.site = e.target.value; });
+    el['f-agent'].addEventListener('input', (e) => { state.agent = e.target.value; });
+    el['f-agent'].addEventListener('blur', (e) => { if (e.target.value) saveSettings(); });
+    el['f-date'].addEventListener('input', (e) => { state.date = e.target.value; });
+    el['f-nature'].addEventListener('input', (e) => { state.nature = e.target.value; });
+
+    el['f-agent'].value = state.agent;
+    el['f-date'].value = state.date;
+
+    el['add-row-btn'].addEventListener('click', addRow);
+    el['validate-btn'].addEventListener('click', handleValidate);
+    el['download-only-btn'].addEventListener('click', handleDownloadOnly);
+
+    el['rows-container'].addEventListener('input', (e) => {
+      if (e.target.dataset.action === 'label') {
+        const id = Number(e.target.dataset.rowId);
+        const row = state.rows.find((r) => r.id === id);
+        if (row) row.label = e.target.value;
+      }
+    });
+    el['rows-container'].addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = Number(btn.dataset.rowId);
+      if (action === 'remove-row') removeRow(id);
+      if (action === 'remove-photo') removePhoto(id, btn.dataset.side);
+    });
+    el['rows-container'].addEventListener('change', (e) => {
+      if (e.target.dataset.action === 'capture') {
+        const id = Number(e.target.dataset.rowId);
+        const side = e.target.dataset.side;
+        const file = e.target.files && e.target.files[0];
+        if (file) handlePhotoFile(id, side, file);
+        e.target.value = '';
+      }
+    });
+
+    el['history-chevron'].innerHTML = ICONS.chevronDown;
+    el['history-toggle'].addEventListener('click', () => {
+      const open = el['history-list'].style.display !== 'none';
+      el['history-list'].style.display = open ? 'none' : '';
+      el['history-chevron'].innerHTML = open ? ICONS.chevronDown : ICONS.chevronUp;
+    });
+
+    renderRows();
+    renderHistory();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => { /* hors-ligne indisponible, app reste utilisable en ligne */ });
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
