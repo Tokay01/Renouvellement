@@ -62,15 +62,36 @@
   }
   .field textarea { resize: none; }
   .field input:focus, .field textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15,122,114,0.15); }
-  .fixed-recipient {
-    width: 100%; border: 1px solid var(--line); border-radius: 10px; background: #eef1ef;
-    padding: 10px 14px; font-size: 14px; color: var(--ink-soft); font-family: var(--font-mono);
-    display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  }
-  .fixed-recipient svg { flex-shrink: 0; color: var(--muted); }
+  .gps-field .small-btn { margin-top: 8px; width: 100%; }
+  .recipient-select { width:100%; border:1px solid var(--line); border-radius:10px; background:var(--card); padding:11px 12px; font:inherit; font-size:15px; color:var(--ink); }
+  .recipient-manager { border:1px solid var(--line); border-radius:10px; padding:12px; background:#f9fbfa; }
+  .recipient-manager summary { cursor:pointer; font-size:13px; font-weight:700; color:var(--teal-deep); }
+  .recipient-editor { padding-top:14px; }
+  .recipient-editor .field { margin-bottom:12px; }
+  .recipient-actions { display:flex; gap:8px; }
+  .small-btn { border:0; border-radius:8px; background:var(--teal); color:white; padding:9px 12px; font:inherit; font-size:13px; font-weight:700; cursor:pointer; }
+  .small-btn.secondary { background:#e6ebe8; color:var(--ink-soft); }
+  .recipient-list { list-style:none; padding:0; margin:12px 0 0; display:flex; flex-direction:column; gap:7px; }
+  .recipient-list li { background:white; border:1px solid var(--line); border-radius:8px; padding:9px; font-size:13px; display:flex; gap:8px; align-items:center; justify-content:space-between; }
+  .recipient-info { min-width:0; overflow-wrap:anywhere; }
+  .recipient-actions-inline { display:flex; gap:5px; flex-shrink:0; }
+  .recipient-actions-inline button { border:1px solid var(--line); background:white; border-radius:6px; padding:5px 7px; cursor:pointer; font-size:12px; }
+  .location-option { display:flex !important; align-items:flex-start; gap:8px; text-transform:none !important; letter-spacing:0 !important; font-size:14px !important; color:var(--ink) !important; }
+  .location-option input { width:auto; margin-top:3px; }
+  .field-error { border-color:#b3261e !important; box-shadow:0 0 0 2px rgba(179,38,30,.12) !important; }
 
   .photos-section { margin-bottom: 32px; }
   #rows-container { display: flex; flex-direction: column; gap: 12px; }
+  .draft-status { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--muted); margin:0 0 12px; min-height:18px; }
+  .draft-status::before { content:""; width:7px; height:7px; border-radius:50%; background:#9aa7a3; flex-shrink:0; }
+  .draft-status.saved::before { background:#16815d; }
+  .draft-status.error::before { background:#b3261e; }
+  .row-status { font-size:11px; font-weight:700; border-radius:20px; padding:4px 7px; white-space:nowrap; }
+  .row-status.complete { background:#e1f3e9; color:#176b4b; }
+  .row-status.partial { background:#fff0d9; color:#87520a; }
+  .row-status.empty { background:#edf0ef; color:#5f6d69; }
+  .row-tools { display:flex; align-items:center; gap:5px; }
+  .row-tools .icon-btn { border:1px solid var(--line); border-radius:7px; padding:6px; }
   .row-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px; box-shadow: 0 1px 2px rgba(11,32,39,0.05); }
   .row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .label-input { flex: 1; border: none; background: transparent; font-size: 14px; font-weight: 600; padding: 4px 0; font-family: inherit; min-width: 0; color: var(--ink); }
@@ -78,6 +99,11 @@
   .icon-btn { background: none; border: none; color: var(--muted); padding: 4px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; }
   .icon-btn:active { color: #b3261e; }
 
+  .photo-pair-wrap { margin-top:10px; }
+  .photo-pair-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .photo-pair-label { font-size:12px; font-weight:700; color:var(--muted); margin:0 0 0 2px; }
+  .remove-pair-btn { border:0; background:transparent; color:var(--muted); padding:3px 6px; cursor:pointer; font-size:12px; }
+  .remove-pair-btn:active { color:#b3261e; }
   .photo-pair { display: flex; gap: 8px; }
   .photo-slot { flex: 1; height: 132px; border-radius: 8px; position: relative; overflow: hidden; }
   .photo-slot.empty {
@@ -204,6 +230,12 @@
       <label for="f-site">Site</label>
       <input id="f-site" type="text" placeholder="Ex. Station de pompage">
     </div>
+    <div class="field gps-field">
+      <label for="f-gps">Coordonnées GPS</label>
+      <input id="f-gps" type="text" placeholder="Ex. 46.123456, 4.123456" autocomplete="off">
+      <button id="capture-gps-btn" class="small-btn" type="button">Obtenir les coordonnées GPS</button>
+      <p id="gps-status" class="hint" aria-live="polite">Appuie sur le bouton pour récupérer la position du téléphone, ou saisis les coordonnées manuellement.</p>
+    </div>
     <div class="field">
       <label for="f-agent">Nom de l'agent</label>
       <input id="f-agent" type="text" placeholder="Nom Prénom" autocomplete="name">
@@ -234,15 +266,23 @@
   <section class="fields">
     <div class="section-eyebrow"><span class="num">03</span>Envoi</div>
     <div class="field">
-      <label>Destinataire</label>
-      <div class="fixed-recipient">
-        <span>sebastien.millet@suez.com</span>
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-      </div>
+      <label for="f-recipient">Destinataire du rapport</label>
+      <select id="f-recipient" class="recipient-select"></select>
+      <p class="hint">Choisis un destinataire enregistré. Tu peux en ajouter ou modifier dans la gestion ci-dessous.</p>
     </div>
-    <p class="hint center">Le document se télécharge automatiquement, puis ta messagerie s'ouvre avec le destinataire et l'objet déjà remplis — il ne reste qu'à joindre le fichier et envoyer.</p>
+    <details class="recipient-manager">
+      <summary>Gérer les destinataires enregistrés</summary>
+      <div class="recipient-editor">
+        <div class="field"><label for="recipient-name">Nom / service</label><input id="recipient-name" type="text" placeholder="Ex. Responsable de secteur"></div>
+        <div class="field"><label for="recipient-email">Adresse e-mail</label><input id="recipient-email" type="email" placeholder="nom@suez.com"></div>
+        <div class="recipient-actions"><button id="recipient-save-btn" class="small-btn" type="button">Enregistrer le destinataire</button><button id="recipient-cancel-btn" class="small-btn secondary" type="button" hidden>Annuler</button></div>
+        <ul id="recipient-list" class="recipient-list"></ul>
+      </div>
+    </details>
+    <p class="hint center">Le document Word se télécharge, puis la messagerie configurée s'ouvre. Il reste à joindre le fichier et envoyer le message.</p>
   </section>
 
+  <p id="draft-status" class="draft-status" role="status" aria-live="polite">Sauvegarde automatique activée</p>
   <div id="msg-area"></div>
 
   <section id="history-section" class="history-section" style="display:none;">
@@ -265,13 +305,34 @@
   'use strict';
 
   let rowIdCounter = 1;
-  function makeRow() { return { id: rowIdCounter++, label: '', before: null, after: null }; }
+  function makeRow() { return { id: rowIdCounter++, label: '', pairs: [{ id: rowIdCounter++, before: null, after: null }] }; }
+  function normalizeRow(r) {
+    if (Array.isArray(r.pairs)) return { id: Number(r.id) || rowIdCounter++, label: r.label || '', pairs: r.pairs.map(p => ({ id: Number(p.id) || rowIdCounter++, before: p.before || null, after: p.after || null })) };
+    return { id: Number(r.id) || rowIdCounter++, label: r.label || '', pairs: [{ id: rowIdCounter++, before: r.before || null, after: r.after || null }] };
+  }
 
   const state = {
     commune: '', site: '', agent: '', date: todayISO(), nature: '',
-    rows: [makeRow()]
+    rows: [makeRow()], selectedRecipientId: 'preset-sebastien-millet',
+    coordinatesGPS: '' 
   };
   let history = [];
+  const PRESET_RECIPIENTS = [
+    { id: 'preset-sebastien-millet', name: 'Sébastien Millet', email: 'sebastien.millet@suez.com' },
+    { id: 'preset-sebastien-fougeras', name: 'Sébastien Fougeras', email: 'sebastien.fougeras@suez.com' },
+    { id: 'preset-charles-mures', name: 'Charles Mures', email: 'charles.mures@suez.com' },
+    { id: 'preset-claude-armanet', name: 'Claude Armanet', email: 'claude.armanet@suez.com' },
+    { id: 'preset-rodolphe-tisserand', name: 'Rodolphe Tisserand', email: 'rodolphe.tisserand@suez.com' },
+    { id: 'preset-fabrice-micoud', name: 'Fabrice Micoud', email: 'fabrice.micoud@suez.com' },
+    { id: 'preset-nicolas-maleysson', name: 'Nicolas Maleysson', email: 'nicolas.maleysson@suez.com' },
+    { id: 'preset-thierry-lebrun', name: 'Thierry Lebrun', email: 'thierry.lebrun@suez.com' }
+  ];
+  let recipients = PRESET_RECIPIENTS.map(r => ({ ...r }));
+  let editingRecipientId = null;
+  let draftSaveTimer = null;
+  const DRAFT_KEY = 'rapport_draft_v2';
+  const RECIPIENTS_KEY = 'rapport_recipients_v1';
+  const RECIPIENTS_SEEDED_KEY = 'rapport_recipients_presets_seeded_v1';
 
   // ---------- helpers ----------
   function todayISO() {
@@ -295,8 +356,8 @@
     return String(str || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
   function compressImage(file, maxWidth, quality) {
-    maxWidth = maxWidth || 1100;
-    quality = quality || 0.72;
+    maxWidth = maxWidth || 900;
+    quality = quality || 0.62;
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -325,11 +386,93 @@
         const parsed = JSON.parse(raw);
         if (parsed.agent) state.agent = parsed.agent;
       }
-    } catch (e) { /* pas de réglages enregistrés */ }
+      const savedRecipients = localStorage.getItem(RECIPIENTS_KEY);
+      const seeded = localStorage.getItem(RECIPIENTS_SEEDED_KEY) === '1';
+      if (savedRecipients) {
+        const list = JSON.parse(savedRecipients);
+        if (Array.isArray(list)) {
+          recipients = list.filter(r => r && r.id && r.name && r.email);
+          // Migration unique : ajouter les huit contacts préconfigurés aux installations existantes.
+          if (!seeded) {
+            const existingEmails = new Set(recipients.map(r => r.email.toLowerCase()));
+            recipients = [...PRESET_RECIPIENTS.filter(r => !existingEmails.has(r.email.toLowerCase())), ...recipients];
+            localStorage.setItem(RECIPIENTS_KEY, JSON.stringify(recipients));
+            localStorage.setItem(RECIPIENTS_SEEDED_KEY, '1');
+          }
+        }
+      } else {
+        recipients = PRESET_RECIPIENTS.map(r => ({ ...r }));
+        localStorage.setItem(RECIPIENTS_KEY, JSON.stringify(recipients));
+        localStorage.setItem(RECIPIENTS_SEEDED_KEY, '1');
+      }
+    } catch (e) { /* réglages absents ou illisibles */ }
   }
   function saveSettings() {
-    try { localStorage.setItem('rapport_settings_v1', JSON.stringify({ agent: state.agent })); }
-    catch (e) { /* stockage indisponible */ }
+    try {
+      localStorage.setItem('rapport_settings_v1', JSON.stringify({ agent: state.agent }));
+      localStorage.setItem(RECIPIENTS_KEY, JSON.stringify(recipients));
+      localStorage.setItem(RECIPIENTS_SEEDED_KEY, '1');
+    } catch (e) { showMessage('error', 'Les paramètres ne peuvent pas être enregistrés sur cet appareil.'); }
+  }
+  function setDraftStatus(text, kind) {
+    if (!el['draft-status']) return;
+    el['draft-status'].textContent = text;
+    el['draft-status'].className = 'draft-status' + (kind ? ' ' + kind : '');
+  }
+  function scheduleDraftSave() {
+    setDraftStatus('Modifications en cours de sauvegarde…');
+    clearTimeout(draftSaveTimer);
+    draftSaveTimer = setTimeout(saveDraft, 400);
+  }
+  function saveDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        commune: state.commune, site: state.site, agent: state.agent, date: state.date,
+        nature: state.nature, rows: state.rows, selectedRecipientId: state.selectedRecipientId,
+        coordinatesGPS: state.coordinatesGPS, savedAt: new Date().toISOString()
+      }));
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setDraftStatus('Brouillon sauvegardé automatiquement à ' + time, 'saved');
+    } catch (e) {
+      setDraftStatus('Sauvegarde impossible : stockage plein. Supprime une photo ou télécharge le rapport.', 'error');
+      showMessage('error', 'La sauvegarde automatique a échoué. Le stockage du navigateur est peut-être plein : retire quelques photos ou télécharge le rapport avant de fermer.');
+    }
+  }
+  function loadDraft() {
+    try {
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
+      if (!d || !Array.isArray(d.rows)) return false;
+      Object.assign(state, d);
+      state.coordinatesGPS = d.coordinatesGPS || '';
+      state.rows = d.rows.length ? d.rows.map(normalizeRow) : [makeRow()];
+      rowIdCounter = Math.max(1, ...state.rows.flatMap(r => [r.id, ...r.pairs.map(p => p.id)]).map(id => id + 1));
+      return true;
+    } catch (e) { return false; }
+  }
+  function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch (e) {} }
+  function renderRecipients() {
+    if (!el['f-recipient']) return;
+    el['f-recipient'].innerHTML = recipients.map(r => `<option value="${escapeAttr(r.id)}">${escapeHtml(r.name)} — ${escapeHtml(r.email)}</option>`).join('');
+    if (!recipients.some(r => r.id === state.selectedRecipientId)) state.selectedRecipientId = recipients[0]?.id || '';
+    el['f-recipient'].value = state.selectedRecipientId;
+    el['recipient-list'].innerHTML = recipients.map(r => `<li><div class="recipient-info"><strong>${escapeHtml(r.name)}</strong><br><span>${escapeHtml(r.email)}</span></div><div class="recipient-actions-inline"><button type="button" data-recipient-action="edit" data-id="${escapeAttr(r.id)}">Modifier</button><button type="button" data-recipient-action="delete" data-id="${escapeAttr(r.id)}">Supprimer</button></div></li>`).join('');
+  }
+  function resetRecipientEditor() {
+    editingRecipientId = null; el['recipient-name'].value = ''; el['recipient-email'].value = '';
+    el['recipient-save-btn'].textContent = 'Enregistrer le destinataire'; el['recipient-cancel-btn'].hidden = true;
+  }
+  function saveRecipient() {
+    const name = el['recipient-name'].value.trim(), email = el['recipient-email'].value.trim();
+    if (!name) return showMessage('error', 'Renseigne le nom ou le service du destinataire.');
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return showMessage('error', 'L’adresse e-mail du destinataire semble invalide.');
+    if (recipients.some(r => r.email.toLowerCase() === email.toLowerCase() && r.id !== editingRecipientId)) return showMessage('error', 'Cette adresse e-mail est déjà enregistrée.');
+    if (editingRecipientId) {
+      const item = recipients.find(r => r.id === editingRecipientId);
+      if (item) { item.name = name; item.email = email; }
+    } else {
+      const item = { id: 'r' + Date.now(), name, email }; recipients.push(item); state.selectedRecipientId = item.id;
+    }
+    saveSettings(); renderRecipients(); resetRecipientEditor(); showMessage('success', 'Destinataire enregistré.'); scheduleDraftSave();
   }
   function loadHistory() {
     try {
@@ -351,8 +494,9 @@
   const el = {};
   function cacheEls() {
     ['f-commune','f-site','f-agent','f-date','f-nature','rows-container','add-row-btn',
-     'msg-area','validate-btn','download-only-btn','history-section','history-toggle',
-     'history-chevron','history-list'].forEach((id) => { el[id] = document.getElementById(id); });
+     'msg-area','draft-status','validate-btn','download-only-btn','history-section','history-toggle',
+     'history-chevron','history-list','f-recipient','recipient-name','recipient-email','recipient-save-btn',
+     'recipient-cancel-btn','recipient-list','f-gps','capture-gps-btn','gps-status'].forEach((id) => { el[id] = document.getElementById(id); });
   }
 
   // ---------- icons (inline SVG, no external dependency) ----------
@@ -367,20 +511,20 @@
   };
 
   // ---------- rendering ----------
-  function photoSlotHtml(row, side) {
+  function photoSlotHtml(rowId, pair, side) {
     const isBefore = side === 'before';
-    const photo = row[side];
+    const photo = pair[side];
     const tone = isBefore ? 'tone-before' : 'tone-after';
     const labelTxt = isBefore ? 'Avant' : 'Après';
     if (photo) {
       return `<div class="photo-slot has-photo">
         <img src="${photo.dataUrl}" alt="${labelTxt}">
         <span class="photo-chip ${tone}">${labelTxt}</span>
-        <button class="remove-photo" data-row-id="${row.id}" data-side="${side}" data-action="remove-photo" aria-label="Supprimer la photo">${ICONS.close}</button>
+        <button class="remove-photo" data-row-id="${rowId}" data-pair-id="${pair.id}" data-side="${side}" data-action="remove-photo" aria-label="Supprimer la photo">${ICONS.close}</button>
       </div>`;
     }
     return `<label class="photo-slot empty ${tone}">
-      <input type="file" accept="image/*" data-row-id="${row.id}" data-side="${side}" data-action="capture">
+      <input type="file" accept="image/*" data-row-id="${rowId}" data-pair-id="${pair.id}" data-side="${side}" data-action="capture">
       <span class="photo-icon">${isBefore ? ICONS.before : ICONS.after}</span>
       <span class="photo-label-text">${labelTxt}</span>
     </label>`;
@@ -388,17 +532,26 @@
 
   function rowCardHtml(row, idx) {
     const canRemove = state.rows.length > 1;
+    const pairs = row.pairs || [];
+    const count = pairs.reduce((n,p) => n + Number(!!p.before) + Number(!!p.after), 0);
+    const total = pairs.length * 2;
+    const status = count === total ? '<span class="row-status complete">Complet</span>' : count ? `<span class="row-status partial">${count} photo(s) sur ${total}</span>` : '<span class="row-status empty">À compléter</span>';
     return `<div class="row-card" data-row-id="${row.id}">
       <div class="row-head">
-        <input class="label-input" data-row-id="${row.id}" data-action="label" placeholder="Équipement ${idx + 1} (optionnel)" value="${escapeAttr(row.label)}">
-        ${canRemove ? `<button class="icon-btn" data-row-id="${row.id}" data-action="remove-row" aria-label="Supprimer cette ligne">${ICONS.trash}</button>` : ''}
+        <input class="label-input" data-row-id="${row.id}" data-action="label" placeholder="Équipement ${idx + 1}" value="${escapeAttr(row.label || '')}" aria-label="Nom de l'équipement ${idx + 1}">
+        ${status}
+        <div class="row-tools"><button class="icon-btn" data-row-id="${row.id}" data-action="add-pair" aria-label="Ajouter une paire de photos" title="Ajouter une paire de photos">＋</button>${canRemove ? `<button class="icon-btn" data-row-id="${row.id}" data-action="remove-row" aria-label="Supprimer cet équipement">${ICONS.trash}</button>` : ''}</div>
       </div>
-      <div class="photo-pair">${photoSlotHtml(row, 'before')}${photoSlotHtml(row, 'after')}</div>
+      ${pairs.map((pair,pidx) => `<div class="photo-pair-wrap"><div class="photo-pair-head"><div class="photo-pair-label">Paire de photos ${pidx+1}</div>${pairs.length > 1 ? `<button type="button" class="remove-pair-btn" data-row-id="${row.id}" data-pair-id="${pair.id}" data-action="remove-pair">Supprimer la ligne</button>` : ''}</div><div class="photo-pair">${photoSlotHtml(row.id,pair,'before')}${photoSlotHtml(row.id,pair,'after')}</div></div>`).join('')}
     </div>`;
   }
 
   function renderRows() {
     el['rows-container'].innerHTML = state.rows.map(rowCardHtml).join('');
+    const complete = state.rows.filter(r => r.pairs.length && r.pairs.every(p => p.before && p.after)).length;
+    const withPhotos = state.rows.filter(r => r.pairs.some(p => p.before || p.after)).length;
+    const hint = document.querySelector('.photos-section > .hint');
+    if (hint) hint.textContent = `${complete} équipement(s) complet(s) sur ${state.rows.length}. ${withPhotos > complete ? 'Attention : une ou plusieurs paires nécessitent une photo manquante.' : 'Chaque paire doit avoir une photo Avant et une photo Après.'}`;
   }
 
   function renderHistory() {
@@ -511,11 +664,12 @@
     const lines = String(text || '').split('\n');
     return lines.map((l) => `<w:t xml:space="preserve">${escapeXml(l)}</w:t>`).join('<w:br/>');
   }
-  const TARGET_WIDTH_EMU = 2160000; // ~6 cm wide in the document
+  const TARGET_WIDTH_EMU = 1450000; // largeur maximale d’image réduite pour les cellules
   function imageDrawingXml(relId, width, height) {
     const ratio = height / Math.max(width, 1);
-    const cx = TARGET_WIDTH_EMU;
-    const cy = Math.max(1, Math.round(TARGET_WIDTH_EMU * ratio));
+    const maxHeight = 1900000;
+    const cx = Math.min(TARGET_WIDTH_EMU, Math.round(maxHeight / Math.max(ratio, 0.01)));
+    const cy = Math.min(maxHeight, Math.max(1, Math.round(cx * ratio)));
     return `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing>` +
       `<wp:inline distT="0" distB="0" distL="0" distR="0">` +
       `<wp:extent cx="${cx}" cy="${cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/>` +
@@ -541,7 +695,7 @@
     }
 
     const body = [];
-    body.push(`<w:p><w:pPr><w:spacing w:after="160"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="32"/></w:rPr><w:t>Rapport de renouvellement d'équipement</w:t></w:r></w:p>`);
+    body.push(`<w:p><w:pPr><w:spacing w:after="220"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="6" w:color="0F7A72"/></w:pBdr></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0A5B54"/><w:sz w:val="34"/></w:rPr><w:t>Rapport de renouvellement d'équipement</w:t></w:r></w:p>`);
 
     function metaLine(label, value) {
       return `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${escapeXml(label)} : </w:t></w:r><w:r><w:t xml:space="preserve">${escapeXml(value)}</w:t></w:r></w:p>`;
@@ -550,21 +704,22 @@
     body.push(metaLine('Site', state.site));
     body.push(metaLine('Agent', state.agent));
     body.push(metaLine('Date', formatDateFr(state.date)));
-    body.push(`<w:p><w:pPr><w:spacing w:after="200"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">Nature des travaux : </w:t></w:r><w:r>${textRunsWithBreaks(state.nature)}</w:r></w:p>`);
+    body.push(`<w:p><w:pPr><w:spacing w:before="100" w:after="240"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0A5B54"/></w:rPr><w:t xml:space="preserve">Nature des travaux : </w:t></w:r><w:r>${textRunsWithBreaks(state.nature)}</w:r></w:p>`);
+    body.push(metaLine('Coordonnées GPS', state.coordinatesGPS.trim() || 'Non renseignées'));
 
-    const rowsWithPhotos = state.rows.filter((r) => r.before || r.after);
-    let tableRows = `<w:tr>
+    const rowsWithPhotos = state.rows.flatMap(r => r.pairs.map((p, pairIndex) => ({ ...p, label: pairIndex === 0 ? (r.label || '') : `${r.label || 'Équipement'} — paire ${pairIndex + 1}` }))).filter(p => p.before && p.after);
+    let tableRows = `<w:tr><w:trPr><w:tblHeader w:val="true"/><w:cantSplit/></w:trPr>
       <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Avant</w:t></w:r></w:p></w:tc>
       <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Après</w:t></w:r></w:p></w:tc>
     </w:tr>`;
 
     rowsWithPhotos.forEach((r) => {
       if (r.label) {
-        tableRows += `<w:tr><w:tc><w:tcPr><w:tcW w:w="9000" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(r.label)}</w:t></w:r></w:p></w:tc></w:tr>`;
+        tableRows += `<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w="9000" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(r.label)}</w:t></w:r></w:p></w:tc></w:tr>`;
       }
       const beforeCell = r.before ? addImage(r.before) : emptyCellXml();
       const afterCell = r.after ? addImage(r.after) : emptyCellXml();
-      tableRows += `<w:tr>
+      tableRows += `<w:tr><w:trPr><w:cantSplit/></w:trPr>
         <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${beforeCell}</w:tc>
         <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${afterCell}</w:tc>
       </w:tr>`;
@@ -572,7 +727,7 @@
 
     body.push(`<w:tbl>
       <w:tblPr>
-        <w:tblW w:w="0" w:type="auto"/>
+        <w:tblW w:w="9000" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/>
         <w:tblBorders>
           <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>
           <w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
@@ -586,7 +741,7 @@
       ${tableRows}
     </w:tbl>`);
     body.push(`<w:p/>`);
-    body.push(`<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`);
+    body.push(`<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`);
 
     const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
@@ -609,9 +764,31 @@
     return makeZip(files, DOCX_MIME);
   }
 
-  function canGenerate() {
-    return !!(state.commune.trim() && state.site.trim() && state.agent.trim() && state.nature.trim() &&
-      state.rows.some((r) => r.before || r.after));
+  function isValidDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+    const [year, month, day] = value.split('-').map(Number);
+    const d = new Date(year, month - 1, day);
+    return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day;
+  }
+
+  function validateForm() {
+    document.querySelectorAll('.field-error').forEach(n => n.classList.remove('field-error'));
+    const checks = [
+      ['f-commune', state.commune.trim(), 'Renseigne la commune de l’intervention.'],
+      ['f-site', state.site.trim(), 'Renseigne le nom du site.'],
+      ['f-agent', state.agent.trim(), 'Renseigne le nom de l’agent.'],
+      ['f-date', isValidDate(state.date), 'Choisis une date valide.'],
+      ['f-nature', state.nature.trim(), 'Décris la nature des travaux.'],
+      ['f-recipient', state.selectedRecipientId && recipients.some(r => r.id === state.selectedRecipientId), 'Choisis un destinataire enregistré.']
+    ];
+    for (const [id, valid, message] of checks) {
+      if (!valid) { el[id].classList.add('field-error'); showMessage('error', message); el[id].focus(); return false; }
+    }
+    const documented = state.rows.flatMap(r => r.pairs.map((p,i) => ({...p, label: r.label || `Équipement`, pairIndex:i+1})).filter(p => p.before || p.after));
+    if (!documented.length) { showMessage('error', 'Ajoute au moins un équipement avec une photo Avant et une photo Après.'); return false; }
+    const incomplete = documented.find(r => !r.before || !r.after);
+    if (incomplete) { showMessage('error', `« ${incomplete.label} » (paire ${incomplete.pairIndex}) doit avoir une photo Avant et une photo Après.`); return false; }
+    return true;
   }
 
   function buildBlobAndMeta() {
@@ -626,7 +803,8 @@ Agent : ${state.agent}
 Nature des travaux : ${state.nature}
 
 Cordialement.`;
-    return { blob, filename, subject, body };
+    const recipient = recipients.find(r => r.id === state.selectedRecipientId) || recipients[0];
+    return { blob, filename, subject, body, recipient };
   }
 
   function downloadBlob(blob, filename) {
@@ -638,33 +816,43 @@ Cordialement.`;
   }
 
   // ---------- actions ----------
-  function addRow() { state.rows.push(makeRow()); renderRows(); }
+  function addRow() { state.rows.push(makeRow()); renderRows(); scheduleDraftSave(); }
+  function addPair(id) {
+    const row = state.rows.find(r => r.id === id);
+    if (!row) return;
+    row.pairs.push({ id: rowIdCounter++, before: null, after: null });
+    renderRows(); scheduleDraftSave();
+    showMessage('success', 'Nouvelle paire de photos ajoutée au même équipement.');
+  }
   function removeRow(id) {
     if (state.rows.length <= 1) return;
     state.rows = state.rows.filter((r) => r.id !== id);
-    renderRows();
+    renderRows(); scheduleDraftSave();
   }
-  function removePhoto(id, side) {
-    const row = state.rows.find((r) => r.id === id);
-    if (row) { row[side] = null; renderRows(); }
+  function removePair(id, pairId) {
+    const row = state.rows.find(r => r.id === id);
+    if (!row || row.pairs.length <= 1) return;
+    row.pairs = row.pairs.filter(p => p.id !== pairId);
+    renderRows(); scheduleDraftSave();
   }
-  function handlePhotoFile(id, side, file) {
+  function removePhoto(id, pairId, side) {
+    const row = state.rows.find(r => r.id === id);
+    const pair = row && row.pairs.find(p => p.id === pairId);
+    if (pair) { pair[side] = null; renderRows(); scheduleDraftSave(); }
+  }
+  function handlePhotoFile(id, pairId, side, file) {
     compressImage(file).then((photo) => {
       const row = state.rows.find((r) => r.id === id);
-      if (row) { row[side] = photo; renderRows(); }
-    }).catch(() => showMessage('error', 'Photo illisible, réessaie.'));
+      const pair = row && row.pairs.find(p => p.id === pairId);
+      if (pair) { pair[side] = photo; renderRows(); scheduleDraftSave(); }
+    }).catch(() => showMessage('error', 'La photo n’a pas pu être lue. Vérifie le fichier et réessaie.'));
   }
 
   const SEND_BTN_HTML = `${ICONS.send}<span>Valider et envoyer</span>`;
   const LOADING_BTN_HTML = `<span class="spinner"></span><span>Génération…</span>`;
-  const MISSING_FIELDS_MSG = 'Renseigne commune, site, agent, nature des travaux et au moins une photo.';
-
   async function handleValidate() {
     clearMessage();
-    if (!canGenerate()) {
-      showMessage('error', MISSING_FIELDS_MSG);
-      return;
-    }
+    if (!validateForm()) return;
     el['validate-btn'].disabled = true;
     el['validate-btn'].innerHTML = LOADING_BTN_HTML;
 
@@ -672,26 +860,58 @@ Cordialement.`;
     downloadBlob(meta.blob, meta.filename);
 
     setTimeout(() => {
-      const mailto = `mailto:${encodeURIComponent(FIXED_RECIPIENT)}?subject=${encodeURIComponent(meta.subject)}&body=${encodeURIComponent(meta.body + "\n\n(Le fichier vient d'être téléchargé — pense à le joindre.)")}`;
+      const mailto = `mailto:${meta.recipient.email}?subject=${encodeURIComponent(meta.subject)}&body=${encodeURIComponent(meta.body + "\n\n(Le fichier vient d'être téléchargé — pense à le joindre.)")}`;
       window.location.href = mailto;
     }, 600);
 
     if (state.agent) saveSettings();
     saveHistoryEntry();
-    showMessage('success', "Rapport téléchargé. Ta messagerie s'ouvre avec le destinataire prérempli — pense à joindre le fichier.");
+    clearDraft();
+    resetReportForm();
+    showMessage('success', "Rapport généré. La messagerie va s’ouvrir avec le destinataire sélectionné ; joins le document téléchargé avant l’envoi.");
     el['validate-btn'].disabled = false;
     el['validate-btn'].innerHTML = SEND_BTN_HTML;
   }
 
   function handleDownloadOnly() {
     clearMessage();
-    if (!canGenerate()) {
-      showMessage('error', MISSING_FIELDS_MSG);
-      return;
-    }
+    if (!validateForm()) return;
     const meta = buildBlobAndMeta();
     downloadBlob(meta.blob, meta.filename);
     saveHistoryEntry();
+    clearDraft();
+    resetReportForm();
+    showMessage('success', 'Rapport Word généré et téléchargé. Le formulaire est prêt pour le prochain rapport.');
+  }
+  function resetReportForm() {
+    state.commune = ''; state.site = ''; state.nature = ''; state.date = todayISO();
+    state.rows = [makeRow()]; state.coordinatesGPS = '';
+    el['f-gps'].value = ''; el['gps-status'].textContent = 'Appuie sur le bouton pour récupérer la position du téléphone, ou saisis les coordonnées manuellement.';
+    el['f-commune'].value = ''; el['f-site'].value = ''; el['f-nature'].value = '';
+    el['f-date'].value = state.date; el['f-agent'].value = state.agent;
+    renderRows(); clearDraft(); scheduleDraftSave();
+  }
+  function captureGPS() {
+    clearMessage();
+    if (!navigator.geolocation) {
+      el['gps-status'].textContent = 'La géolocalisation n’est pas disponible sur cet appareil. Tu peux saisir les coordonnées manuellement.';
+      showMessage('error', 'Ce navigateur ne permet pas de récupérer automatiquement les coordonnées GPS.');
+      return;
+    }
+    el['capture-gps-btn'].disabled = true;
+    el['gps-status'].textContent = 'Récupération de la position du téléphone…';
+    navigator.geolocation.getCurrentPosition(pos => {
+      state.coordinatesGPS = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+      el['f-gps'].value = state.coordinatesGPS;
+      el['gps-status'].textContent = `Coordonnées récupérées (précision estimée : ${Math.round(pos.coords.accuracy)} m).`;
+      el['capture-gps-btn'].disabled = false;
+      scheduleDraftSave();
+    }, err => {
+      const message = err.code === 1 ? 'Autorisation de localisation refusée.' : err.code === 2 ? 'Position indisponible.' : 'La demande de localisation a expiré.';
+      el['gps-status'].textContent = `${message} Vérifie les autorisations ou saisis les coordonnées manuellement.`;
+      showMessage('error', message);
+      el['capture-gps-btn'].disabled = false;
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
   }
 
   // ---------- wiring ----------
@@ -699,60 +919,85 @@ Cordialement.`;
     cacheEls();
     loadSettings();
     loadHistory();
+    const restored = loadDraft();
+    ['f-commune','f-site','f-agent','f-date','f-nature'].forEach(id => {
+      const key = ({'f-commune':'commune','f-site':'site','f-agent':'agent','f-date':'date','f-nature':'nature'})[id];
+      el[id].value = state[key] || '';
+      el[id].addEventListener('input', e => {
+        state[key] = e.target.value;
+        if (id === 'f-agent') saveSettings();
+        scheduleDraftSave();
+      });
+    });
+    el['f-gps'].value = state.coordinatesGPS || '';
+    renderRecipients();
+    if (state.coordinatesGPS) el['gps-status'].textContent = 'Coordonnées GPS restaurées avec le brouillon.';
+    if (restored) { showMessage('success', 'Brouillon précédent restauré automatiquement.'); setDraftStatus('Brouillon précédent restauré ; les modifications sont sauvegardées automatiquement.', 'saved'); }
 
-    el['f-commune'].addEventListener('input', (e) => { state.commune = e.target.value; });
-    el['f-site'].addEventListener('input', (e) => { state.site = e.target.value; });
-    el['f-agent'].addEventListener('input', (e) => { state.agent = e.target.value; });
-    el['f-agent'].addEventListener('blur', (e) => { if (e.target.value) saveSettings(); });
-    el['f-date'].addEventListener('input', (e) => { state.date = e.target.value; });
-    el['f-nature'].addEventListener('input', (e) => { state.nature = e.target.value; });
-
-    el['f-agent'].value = state.agent;
-    el['f-date'].value = state.date;
+    el['f-recipient'].addEventListener('change', e => { state.selectedRecipientId = e.target.value; scheduleDraftSave(); });
+    el['f-gps'].addEventListener('input', e => { state.coordinatesGPS = e.target.value; scheduleDraftSave(); });
+    el['capture-gps-btn'].addEventListener('click', captureGPS);
+    el['recipient-save-btn'].addEventListener('click', saveRecipient);
+    el['recipient-cancel-btn'].addEventListener('click', resetRecipientEditor);
+    el['recipient-list'].addEventListener('click', e => {
+      const btn = e.target.closest('[data-recipient-action]');
+      if (!btn) return;
+      const item = recipients.find(r => r.id === btn.dataset.id);
+      if (!item) return;
+      if (btn.dataset.recipientAction === 'edit') {
+        editingRecipientId = item.id;
+        el['recipient-name'].value = item.name;
+        el['recipient-email'].value = item.email;
+        el['recipient-save-btn'].textContent = 'Enregistrer les modifications';
+        el['recipient-cancel-btn'].hidden = false;
+      } else {
+        if (recipients.length <= 1) return showMessage('error', 'Conserve au moins un destinataire enregistré.');
+        if (!confirm(`Supprimer le destinataire « ${item.name} » ?`)) return;
+        recipients = recipients.filter(r => r.id !== item.id);
+        if (state.selectedRecipientId === item.id) state.selectedRecipientId = recipients[0].id;
+        saveSettings(); renderRecipients(); scheduleDraftSave();
+        showMessage('success', 'Destinataire supprimé.');
+      }
+    });
 
     el['add-row-btn'].addEventListener('click', addRow);
     el['validate-btn'].addEventListener('click', handleValidate);
     el['download-only-btn'].addEventListener('click', handleDownloadOnly);
-
-    el['rows-container'].addEventListener('input', (e) => {
+    el['rows-container'].addEventListener('input', e => {
       if (e.target.dataset.action === 'label') {
-        const id = Number(e.target.dataset.rowId);
-        const row = state.rows.find((r) => r.id === id);
-        if (row) row.label = e.target.value;
+        const row = state.rows.find(r => r.id === Number(e.target.dataset.rowId));
+        if (row) { row.label = e.target.value; scheduleDraftSave(); }
       }
     });
-    el['rows-container'].addEventListener('click', (e) => {
+    el['rows-container'].addEventListener('click', e => {
       const btn = e.target.closest('[data-action]');
       if (!btn) return;
-      const action = btn.dataset.action;
       const id = Number(btn.dataset.rowId);
-      if (action === 'remove-row') removeRow(id);
-      if (action === 'remove-photo') removePhoto(id, btn.dataset.side);
+      if (btn.dataset.action === 'remove-row') removeRow(id);
+      if (btn.dataset.action === 'add-pair') addPair(id);
+      if (btn.dataset.action === 'remove-pair') removePair(id, Number(btn.dataset.pairId));
+      if (btn.dataset.action === 'remove-photo') removePhoto(id, Number(btn.dataset.pairId), btn.dataset.side);
     });
-    el['rows-container'].addEventListener('change', (e) => {
+    el['rows-container'].addEventListener('change', e => {
       if (e.target.dataset.action === 'capture') {
-        const id = Number(e.target.dataset.rowId);
-        const side = e.target.dataset.side;
+        const id = Number(e.target.dataset.rowId), pairId = Number(e.target.dataset.pairId), side = e.target.dataset.side;
         const file = e.target.files && e.target.files[0];
-        if (file) handlePhotoFile(id, side, file);
+        if (file) handlePhotoFile(id, pairId, side, file);
         e.target.value = '';
       }
     });
-
     el['history-chevron'].innerHTML = ICONS.chevronDown;
     el['history-toggle'].addEventListener('click', () => {
       const open = el['history-list'].style.display !== 'none';
       el['history-list'].style.display = open ? 'none' : '';
       el['history-chevron'].innerHTML = open ? ICONS.chevronDown : ICONS.chevronUp;
     });
-
     renderRows();
     renderHistory();
-
+    if (restored) scheduleDraftSave();
+    window.addEventListener('pagehide', () => { clearTimeout(draftSaveTimer); saveDraft(); });
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js').catch(() => { /* hors-ligne indisponible, app reste utilisable en ligne */ });
-      });
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
     }
   }
 
