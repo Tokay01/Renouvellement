@@ -464,7 +464,7 @@
   function saveRecipient() {
     const name = el['recipient-name'].value.trim(), email = el['recipient-email'].value.trim();
     if (!name) return showMessage('error', 'Renseigne le nom ou le service du destinataire.');
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return showMessage('error', 'L’adresse e-mail du destinataire semble invalide.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showMessage('error', 'L’adresse e-mail du destinataire semble invalide.');
     if (recipients.some(r => r.email.toLowerCase() === email.toLowerCase() && r.id !== editingRecipientId)) return showMessage('error', 'Cette adresse e-mail est déjà enregistrée.');
     if (editingRecipientId) {
       const item = recipients.find(r => r.id === editingRecipientId);
