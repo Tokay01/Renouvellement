@@ -231,6 +231,10 @@
         <option value="Autre">Autre</option>
       </select>
     </div>
+    <div class="field" id="title-rapport-field" hidden>
+      <label for="f-titre-rapport">Titre du rapport</label>
+      <input id="f-titre-rapport" type="text" placeholder="Saisis le titre du rapport" autocomplete="off">
+    </div>
     <div class="field">
       <label for="f-commune">Commune</label>
       <input id="f-commune" type="text" placeholder="Ex. Corcelles-en-Beaujolais">
@@ -321,7 +325,7 @@
   }
 
   const state = {
-    typeFiche: 'Renouvellement', commune: '', site: '', agent: '', date: todayISO(), nature: '',
+    typeFiche: 'Renouvellement', titreRapport: '', commune: '', site: '', agent: '', date: todayISO(), nature: '',
     rows: [makeRow()], selectedRecipientId: 'preset-sebastien-millet',
     coordinatesGPS: '' 
   };
@@ -437,7 +441,7 @@
   function saveDraft() {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        typeFiche: state.typeFiche, commune: state.commune, site: state.site, agent: state.agent, date: state.date,
+        typeFiche: state.typeFiche, titreRapport: state.titreRapport || '', commune: state.commune, site: state.site, agent: state.agent, date: state.date,
         nature: state.nature, rows: state.rows, selectedRecipientId: state.selectedRecipientId,
         coordinatesGPS: state.coordinatesGPS, savedAt: new Date().toISOString()
       }));
@@ -504,7 +508,7 @@
   // ---------- DOM refs ----------
   const el = {};
   function cacheEls() {
-    ['f-type','f-commune','f-site','f-agent','f-date','f-nature','rows-container','add-row-btn',
+    ['f-type','f-titre-rapport','title-rapport-field','f-commune','f-site','f-agent','f-date','f-nature','rows-container','add-row-btn',
      'msg-area','draft-status','validate-btn','download-only-btn','history-section','history-toggle',
      'history-chevron','history-list','f-recipient','recipient-name','recipient-email','recipient-save-btn',
      'recipient-cancel-btn','recipient-list','f-gps','capture-gps-btn','gps-status'].forEach((id) => { el[id] = document.getElementById(id); });
@@ -706,7 +710,8 @@
     }
 
     const body = [];
-    const reportTitle = `Fiche d'intervention — ${state.typeFiche}`;
+    const reportTypeLabel = state.typeFiche === 'Autre' ? (state.titreRapport.trim() || 'Autre') : state.typeFiche;
+    const reportTitle = `Fiche d'intervention — ${reportTypeLabel}`;
     body.push(`<w:p><w:pPr><w:spacing w:after="220"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="6" w:color="0F7A72"/></w:pBdr></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0A5B54"/><w:sz w:val="34"/></w:rPr><w:t>${escapeXml(reportTitle)}</w:t></w:r></w:p>`);
 
     function metaLine(label, value) {
@@ -805,22 +810,24 @@
       el['f-gps'].focus();
       return false;
     }
-    if (state.typeFiche === 'Renouvellement') {
-      const documented = state.rows.flatMap(r => r.pairs.map((p,i) => ({...p, label: r.label || `Équipement`, pairIndex:i+1})).filter(p => p.before || p.after));
-      if (!documented.length) { showMessage('error', 'Pour une fiche Renouvellement, ajoute au moins une paire de photos Avant/Après.'); return false; }
-      const incomplete = documented.find(r => !r.before || !r.after);
-      if (incomplete) { showMessage('error', `« ${incomplete.label} » (paire ${incomplete.pairIndex}) doit avoir une photo Avant et une photo Après.`); return false; }
+    if (state.typeFiche === 'Autre' && !state.titreRapport.trim()) {
+      el['f-titre-rapport'].classList.add('field-error');
+      showMessage('error', 'Renseigne le titre du rapport pour le type « Autre ».');
+      el['f-titre-rapport'].focus();
+      return false;
     }
+    // Les photos sont facultatives : elles ne bloquent jamais la génération du rapport.
     return true;
   }
 
   function buildBlobAndMeta() {
     const blob = buildDocxBlob();
-    const filename = `Fiche_${slugify(state.typeFiche)}_${slugify(state.commune)}_${slugify(state.site)}_${state.date}.docx`;
-    const subject = `Fiche d'intervention - ${state.typeFiche} - ${state.commune}${state.site.trim() ? ' - ' + state.site : ''} - ${formatDateFr(state.date)}`;
+    const reportTypeLabel = state.typeFiche === 'Autre' ? (state.titreRapport.trim() || 'Autre') : state.typeFiche;
+    const filename = `Fiche_${slugify(reportTypeLabel)}_${slugify(state.commune)}_${slugify(state.site)}_${state.date}.docx`;
+    const subject = `Fiche d'intervention - ${reportTypeLabel} - ${state.commune}${state.site.trim() ? ' - ' + state.site : ''} - ${formatDateFr(state.date)}`;
     const body = `Bonjour,
 
-Veuillez trouver ci-joint la fiche d'intervention de type ${state.typeFiche}${state.site.trim() ? ' pour le site ' + state.site : ''} (${state.commune}) du ${formatDateFr(state.date)}.
+Veuillez trouver ci-joint la fiche d'intervention de type ${reportTypeLabel}${state.site.trim() ? ' pour le site ' + state.site : ''} (${state.commune}) du ${formatDateFr(state.date)}.
 
 Agent : ${state.agent}
 Nature / description : ${state.nature}
@@ -907,11 +914,11 @@ Cordialement.`;
     showMessage('success', 'Rapport Word généré et téléchargé. Le formulaire est prêt pour le prochain rapport.');
   }
   function resetReportForm() {
-    state.commune = ''; state.site = ''; state.nature = ''; state.date = todayISO();
+    state.commune = ''; state.site = ''; state.nature = ''; state.titreRapport = ''; state.date = todayISO();
     state.typeFiche = 'Renouvellement'; el['f-type'].value = state.typeFiche;
     state.rows = [makeRow()]; state.coordinatesGPS = ''; el['f-gps'].classList.remove('field-error');
     el['f-gps'].value = ''; el['gps-status'].textContent = 'Appuie sur le bouton pour récupérer la position du téléphone, ou saisis les coordonnées manuellement.';
-    el['f-commune'].value = ''; el['f-site'].value = ''; el['f-nature'].value = '';
+    el['f-commune'].value = ''; el['f-site'].value = ''; el['f-nature'].value = ''; el['f-titre-rapport'].value = ''; updateTitleField();
     el['f-date'].value = state.date; el['f-agent'].value = state.agent;
     renderRows(); clearDraft(); scheduleDraftSave();
   }
@@ -938,6 +945,13 @@ Cordialement.`;
     }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
   }
 
+  function updateTitleField() {
+    const show = state.typeFiche === 'Autre';
+    el['title-rapport-field'].hidden = !show;
+    el['f-titre-rapport'].required = show;
+    if (!show) el['f-titre-rapport'].classList.remove('field-error');
+  }
+
   // ---------- wiring ----------
   function init() {
     cacheEls();
@@ -953,8 +967,11 @@ Cordialement.`;
         scheduleDraftSave();
       });
     });
+    el['f-titre-rapport'].value = state.titreRapport || '';
+    el['f-titre-rapport'].addEventListener('input', e => { state.titreRapport = e.target.value; e.target.classList.remove('field-error'); scheduleDraftSave(); });
     el['f-type'].value = state.typeFiche || 'Renouvellement';
-    el['f-type'].addEventListener('change', e => { state.typeFiche = e.target.value; scheduleDraftSave(); });
+    el['f-type'].addEventListener('change', e => { state.typeFiche = e.target.value; updateTitleField(); scheduleDraftSave(); });
+    updateTitleField();
     el['f-gps'].value = state.coordinatesGPS || '';
     renderRecipients();
     if (state.coordinatesGPS) el['gps-status'].textContent = 'Coordonnées GPS restaurées avec le brouillon.';
