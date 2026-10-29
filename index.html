@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Rapport de renouvellement</title>
+<title>Fiche d’intervention</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f766e">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -56,12 +56,13 @@
 
   .fields { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
   .field label { display: block; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-  .field input, .field textarea {
+  .field input, .field textarea, .field select {
     width: 100%; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
     padding: 10px 14px; font-size: 16px; color: var(--ink); font-family: inherit;
   }
+  .field select { min-height: 43px; appearance: auto; cursor: pointer; }
   .field textarea { resize: none; }
-  .field input:focus, .field textarea:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15,122,114,0.15); }
+  .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15,122,114,0.15); }
   .gps-field .small-btn { margin-top: 8px; width: 100%; }
   .recipient-select { width:100%; border:1px solid var(--line); border-radius:10px; background:var(--card); padding:11px 12px; font:inherit; font-size:15px; color:var(--ink); }
   .recipient-manager { border:1px solid var(--line); border-radius:10px; padding:12px; background:#f9fbfa; }
@@ -215,13 +216,21 @@
       <circle class="brand-mark-fg" cx="50" cy="59" r="15"/>
     </svg>
     <div class="app-header-text">
-      <div class="eyebrow"><span class="status-dot"></span>Fiche d'intervention</div>
-      <h1>Renouvellement d'équipement</h1>
+      <h1>Fiche d'intervention</h1>
     </div>
   </header>
 
   <section class="fields">
     <div class="section-eyebrow"><span class="num">01</span>Identification</div>
+    <div class="field">
+      <label for="f-type">Type de fiche</label>
+      <select id="f-type">
+        <option value="Renouvellement">Renouvellement</option>
+        <option value="Localisation">Localisation</option>
+        <option value="Fait marquant">Fait marquant</option>
+        <option value="Autre">Autre</option>
+      </select>
+    </div>
     <div class="field">
       <label for="f-commune">Commune</label>
       <input id="f-commune" type="text" placeholder="Ex. Corcelles-en-Beaujolais">
@@ -312,7 +321,7 @@
   }
 
   const state = {
-    commune: '', site: '', agent: '', date: todayISO(), nature: '',
+    typeFiche: 'Renouvellement', commune: '', site: '', agent: '', date: todayISO(), nature: '',
     rows: [makeRow()], selectedRecipientId: 'preset-sebastien-millet',
     coordinatesGPS: '' 
   };
@@ -392,10 +401,11 @@
         const list = JSON.parse(savedRecipients);
         if (Array.isArray(list)) {
           recipients = list.filter(r => r && r.id && r.name && r.email);
-          // Migration unique : ajouter les huit contacts préconfigurés aux installations existantes.
-          if (!seeded) {
-            const existingEmails = new Set(recipients.map(r => r.email.toLowerCase()));
-            recipients = [...PRESET_RECIPIENTS.filter(r => !existingEmails.has(r.email.toLowerCase())), ...recipients];
+          // Toujours rétablir les contacts préconfigurés manquants, sans écraser les modifications locales.
+          const existingIds = new Set(recipients.map(r => r.id));
+          const missingPresets = PRESET_RECIPIENTS.filter(r => !existingIds.has(r.id));
+          if (missingPresets.length || !seeded) {
+            recipients = [...missingPresets, ...recipients];
             localStorage.setItem(RECIPIENTS_KEY, JSON.stringify(recipients));
             localStorage.setItem(RECIPIENTS_SEEDED_KEY, '1');
           }
@@ -427,7 +437,7 @@
   function saveDraft() {
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({
-        commune: state.commune, site: state.site, agent: state.agent, date: state.date,
+        typeFiche: state.typeFiche, commune: state.commune, site: state.site, agent: state.agent, date: state.date,
         nature: state.nature, rows: state.rows, selectedRecipientId: state.selectedRecipientId,
         coordinatesGPS: state.coordinatesGPS, savedAt: new Date().toISOString()
       }));
@@ -443,6 +453,7 @@
       const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
       if (!d || !Array.isArray(d.rows)) return false;
       Object.assign(state, d);
+      state.typeFiche = ['Renouvellement', 'Localisation', 'Fait marquant', 'Autre'].includes(d.typeFiche) ? d.typeFiche : 'Renouvellement';
       state.coordinatesGPS = d.coordinatesGPS || '';
       state.rows = d.rows.length ? d.rows.map(normalizeRow) : [makeRow()];
       rowIdCounter = Math.max(1, ...state.rows.flatMap(r => [r.id, ...r.pairs.map(p => p.id)]).map(id => id + 1));
@@ -493,7 +504,7 @@
   // ---------- DOM refs ----------
   const el = {};
   function cacheEls() {
-    ['f-commune','f-site','f-agent','f-date','f-nature','rows-container','add-row-btn',
+    ['f-type','f-commune','f-site','f-agent','f-date','f-nature','rows-container','add-row-btn',
      'msg-area','draft-status','validate-btn','download-only-btn','history-section','history-toggle',
      'history-chevron','history-list','f-recipient','recipient-name','recipient-email','recipient-save-btn',
      'recipient-cancel-btn','recipient-list','f-gps','capture-gps-btn','gps-status'].forEach((id) => { el[id] = document.getElementById(id); });
@@ -695,52 +706,56 @@
     }
 
     const body = [];
-    body.push(`<w:p><w:pPr><w:spacing w:after="220"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="6" w:color="0F7A72"/></w:pBdr></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0A5B54"/><w:sz w:val="34"/></w:rPr><w:t>Rapport de renouvellement d'équipement</w:t></w:r></w:p>`);
+    const reportTitle = `Fiche d'intervention — ${state.typeFiche}`;
+    body.push(`<w:p><w:pPr><w:spacing w:after="220"/><w:pBdr><w:bottom w:val="single" w:sz="12" w:space="6" w:color="0F7A72"/></w:pBdr></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0A5B54"/><w:sz w:val="34"/></w:rPr><w:t>${escapeXml(reportTitle)}</w:t></w:r></w:p>`);
 
     function metaLine(label, value) {
       return `<w:p><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">${escapeXml(label)} : </w:t></w:r><w:r><w:t xml:space="preserve">${escapeXml(value)}</w:t></w:r></w:p>`;
     }
     body.push(metaLine('Commune', state.commune));
-    body.push(metaLine('Site', state.site));
+    if (state.site.trim()) body.push(metaLine('Site', state.site));
     body.push(metaLine('Agent', state.agent));
     body.push(metaLine('Date', formatDateFr(state.date)));
     body.push(`<w:p><w:pPr><w:spacing w:before="100" w:after="240"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="0A5B54"/></w:rPr><w:t xml:space="preserve">Nature des travaux : </w:t></w:r><w:r>${textRunsWithBreaks(state.nature)}</w:r></w:p>`);
     body.push(metaLine('Coordonnées GPS', state.coordinatesGPS.trim() || 'Non renseignées'));
 
-    const rowsWithPhotos = state.rows.flatMap(r => r.pairs.map((p, pairIndex) => ({ ...p, label: pairIndex === 0 ? (r.label || '') : `${r.label || 'Équipement'} — paire ${pairIndex + 1}` }))).filter(p => p.before && p.after);
-    let tableRows = `<w:tr><w:trPr><w:tblHeader w:val="true"/><w:cantSplit/></w:trPr>
-      <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Avant</w:t></w:r></w:p></w:tc>
-      <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Après</w:t></w:r></w:p></w:tc>
-    </w:tr>`;
-
-    rowsWithPhotos.forEach((r) => {
-      if (r.label) {
-        tableRows += `<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w="9000" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(r.label)}</w:t></w:r></w:p></w:tc></w:tr>`;
-      }
-      const beforeCell = r.before ? addImage(r.before) : emptyCellXml();
-      const afterCell = r.after ? addImage(r.after) : emptyCellXml();
-      tableRows += `<w:tr><w:trPr><w:cantSplit/></w:trPr>
-        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${beforeCell}</w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${afterCell}</w:tc>
+    const rowsWithPhotos = state.rows.flatMap(r => r.pairs.map((p, pairIndex) => ({ ...p, label: pairIndex === 0 ? (r.label || '') : `${r.label || 'Équipement'} — paire ${pairIndex + 1}` }))).filter(p => p.before || p.after);
+    // N'afficher le tableau Avant/Après que si au moins une paire complète est présente.
+    if (rowsWithPhotos.length > 0) {
+      let tableRows = `<w:tr><w:trPr><w:tblHeader w:val="true"/><w:cantSplit/></w:trPr>
+        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Avant</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="EEEEEE"/></w:tcPr><w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/></w:rPr><w:t>Après</w:t></w:r></w:p></w:tc>
       </w:tr>`;
-    });
 
-    body.push(`<w:tbl>
-      <w:tblPr>
-        <w:tblW w:w="9000" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/>
-        <w:tblBorders>
-          <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>
-          <w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
-          <w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/>
-          <w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>
-          <w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/>
-          <w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>
-        </w:tblBorders>
-      </w:tblPr>
-      <w:tblGrid><w:gridCol w:w="4500"/><w:gridCol w:w="4500"/></w:tblGrid>
-      ${tableRows}
-    </w:tbl>`);
-    body.push(`<w:p/>`);
+      rowsWithPhotos.forEach((r) => {
+        if (r.label) {
+          tableRows += `<w:tr><w:trPr><w:cantSplit/></w:trPr><w:tc><w:tcPr><w:tcW w:w="9000" w:type="dxa"/><w:gridSpan w:val="2"/><w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr><w:p><w:r><w:rPr><w:b/></w:rPr><w:t>${escapeXml(r.label)}</w:t></w:r></w:p></w:tc></w:tr>`;
+        }
+        const beforeCell = r.before ? addImage(r.before) : emptyCellXml();
+        const afterCell = r.after ? addImage(r.after) : emptyCellXml();
+        tableRows += `<w:tr><w:trPr><w:cantSplit/></w:trPr>
+          <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${beforeCell}</w:tc>
+          <w:tc><w:tcPr><w:tcW w:w="4500" w:type="dxa"/></w:tcPr>${afterCell}</w:tc>
+        </w:tr>`;
+      });
+
+      body.push(`<w:tbl>
+        <w:tblPr>
+          <w:tblW w:w="9000" w:type="dxa"/><w:jc w:val="center"/><w:tblLayout w:type="fixed"/>
+          <w:tblBorders>
+            <w:top w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+            <w:left w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+            <w:bottom w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+            <w:right w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+            <w:insideH w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+            <w:insideV w:val="single" w:sz="4" w:space="0" w:color="999999"/>
+          </w:tblBorders>
+        </w:tblPr>
+        <w:tblGrid><w:gridCol w:w="4500"/><w:gridCol w:w="4500"/></w:tblGrid>
+        ${tableRows}
+      </w:tbl>`);
+      body.push(`<w:p/>`);
+    }
     body.push(`<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>`);
 
     const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -774,8 +789,8 @@
   function validateForm() {
     document.querySelectorAll('.field-error').forEach(n => n.classList.remove('field-error'));
     const checks = [
+      ['f-type', ['Renouvellement', 'Localisation', 'Fait marquant', 'Autre'].includes(state.typeFiche), 'Choisis un type de fiche.'],
       ['f-commune', state.commune.trim(), 'Renseigne la commune de l’intervention.'],
-      ['f-site', state.site.trim(), 'Renseigne le nom du site.'],
       ['f-agent', state.agent.trim(), 'Renseigne le nom de l’agent.'],
       ['f-date', isValidDate(state.date), 'Choisis une date valide.'],
       ['f-nature', state.nature.trim(), 'Décris la nature des travaux.'],
@@ -784,23 +799,31 @@
     for (const [id, valid, message] of checks) {
       if (!valid) { el[id].classList.add('field-error'); showMessage('error', message); el[id].focus(); return false; }
     }
-    const documented = state.rows.flatMap(r => r.pairs.map((p,i) => ({...p, label: r.label || `Équipement`, pairIndex:i+1})).filter(p => p.before || p.after));
-    if (!documented.length) { showMessage('error', 'Ajoute au moins un équipement avec une photo Avant et une photo Après.'); return false; }
-    const incomplete = documented.find(r => !r.before || !r.after);
-    if (incomplete) { showMessage('error', `« ${incomplete.label} » (paire ${incomplete.pairIndex}) doit avoir une photo Avant et une photo Après.`); return false; }
+    if (state.typeFiche === 'Localisation' && !state.coordinatesGPS.trim()) {
+      el['f-gps'].classList.add('field-error');
+      showMessage('error', 'Renseigne les coordonnées GPS pour une fiche de type Localisation.');
+      el['f-gps'].focus();
+      return false;
+    }
+    if (state.typeFiche === 'Renouvellement') {
+      const documented = state.rows.flatMap(r => r.pairs.map((p,i) => ({...p, label: r.label || `Équipement`, pairIndex:i+1})).filter(p => p.before || p.after));
+      if (!documented.length) { showMessage('error', 'Pour une fiche Renouvellement, ajoute au moins une paire de photos Avant/Après.'); return false; }
+      const incomplete = documented.find(r => !r.before || !r.after);
+      if (incomplete) { showMessage('error', `« ${incomplete.label} » (paire ${incomplete.pairIndex}) doit avoir une photo Avant et une photo Après.`); return false; }
+    }
     return true;
   }
 
   function buildBlobAndMeta() {
     const blob = buildDocxBlob();
-    const filename = `Rapport_${slugify(state.commune)}_${slugify(state.site)}_${state.date}.docx`;
-    const subject = `Rapport renouvellement - ${state.commune} - ${state.site} - ${formatDateFr(state.date)}`;
+    const filename = `Fiche_${slugify(state.typeFiche)}_${slugify(state.commune)}_${slugify(state.site)}_${state.date}.docx`;
+    const subject = `Fiche d'intervention - ${state.typeFiche} - ${state.commune}${state.site.trim() ? ' - ' + state.site : ''} - ${formatDateFr(state.date)}`;
     const body = `Bonjour,
 
-Ci-joint le rapport de renouvellement d'équipement pour ${state.site} (${state.commune}) du ${formatDateFr(state.date)}.
+Veuillez trouver ci-joint la fiche d'intervention de type ${state.typeFiche}${state.site.trim() ? ' pour le site ' + state.site : ''} (${state.commune}) du ${formatDateFr(state.date)}.
 
 Agent : ${state.agent}
-Nature des travaux : ${state.nature}
+Nature / description : ${state.nature}
 
 Cordialement.`;
     const recipient = recipients.find(r => r.id === state.selectedRecipientId) || recipients[0];
@@ -885,7 +908,8 @@ Cordialement.`;
   }
   function resetReportForm() {
     state.commune = ''; state.site = ''; state.nature = ''; state.date = todayISO();
-    state.rows = [makeRow()]; state.coordinatesGPS = '';
+    state.typeFiche = 'Renouvellement'; el['f-type'].value = state.typeFiche;
+    state.rows = [makeRow()]; state.coordinatesGPS = ''; el['f-gps'].classList.remove('field-error');
     el['f-gps'].value = ''; el['gps-status'].textContent = 'Appuie sur le bouton pour récupérer la position du téléphone, ou saisis les coordonnées manuellement.';
     el['f-commune'].value = ''; el['f-site'].value = ''; el['f-nature'].value = '';
     el['f-date'].value = state.date; el['f-agent'].value = state.agent;
@@ -929,6 +953,8 @@ Cordialement.`;
         scheduleDraftSave();
       });
     });
+    el['f-type'].value = state.typeFiche || 'Renouvellement';
+    el['f-type'].addEventListener('change', e => { state.typeFiche = e.target.value; scheduleDraftSave(); });
     el['f-gps'].value = state.coordinatesGPS || '';
     renderRecipients();
     if (state.coordinatesGPS) el['gps-status'].textContent = 'Coordonnées GPS restaurées avec le brouillon.';
@@ -977,6 +1003,14 @@ Cordialement.`;
       if (btn.dataset.action === 'add-pair') addPair(id);
       if (btn.dataset.action === 'remove-pair') removePair(id, Number(btn.dataset.pairId));
       if (btn.dataset.action === 'remove-photo') removePhoto(id, Number(btn.dataset.pairId), btn.dataset.side);
+    });
+    // Sur certains navigateurs Android installés en PWA, toucher le contenu du label
+    // ne déclenche pas toujours le sélecteur de fichier. On relaie explicitement le tap.
+    el['rows-container'].addEventListener('click', e => {
+      const slot = e.target.closest('label.photo-slot.empty');
+      if (!slot || e.target.matches('input[type=\"file\"]')) return;
+      const input = slot.querySelector('input[type=\"file\"]');
+      if (input) { e.preventDefault(); input.click(); }
     });
     el['rows-container'].addEventListener('change', e => {
       if (e.target.dataset.action === 'capture') {
